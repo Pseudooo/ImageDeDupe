@@ -1,4 +1,5 @@
 use std::{env, fs};
+use std::ffi::OsStr;
 use std::path::PathBuf;
 
 fn main() {
@@ -26,10 +27,20 @@ fn get_files_from_path(path: PathBuf) -> Vec<PathBuf> {
 
         if path.is_dir() {
             files.append(&mut get_files_from_path(path));
-        } else if path.is_file() {
+        } else if path.is_file() && is_valid_extension(path.extension()) {
             files.push(path);
         }
     }
 
     return files;
+}
+
+fn is_valid_extension(extension: Option<&OsStr>) -> bool {
+    let valid_extensions = vec!["jpg", "jpeg", "png", "heic"];
+
+    if let Some(e) = extension {
+        return valid_extensions.contains(&e.to_ascii_lowercase().to_str().unwrap());
+    }
+
+    return false;
 }
