@@ -1,9 +1,8 @@
-use std::{env, fs};
-use std::error::Error;
-use std::ffi::OsStr;
-use std::path::PathBuf;
 use image::{DynamicImage, ImageBuffer, Rgba};
 use image_hasher::{HashAlg, HasherConfig, ImageHash};
+use std::ffi::OsStr;
+use std::path::PathBuf;
+use std::{env, fs};
 
 fn main() {
     println!("Finding files in current directory...");
