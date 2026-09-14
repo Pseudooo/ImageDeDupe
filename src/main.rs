@@ -3,6 +3,7 @@ use image_hasher::{HashAlg, HasherConfig, ImageHash};
 use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::{env, fs};
+use indicatif::{ProgressBar, ProgressStyle};
 
 fn main() {
     println!("Finding files in current directory...");
@@ -62,8 +63,22 @@ fn read_and_hash_files(file_paths: &Vec<PathBuf>) -> Result<Vec<HashedImageEntry
         .to_hasher();
 
     let mut hashed_image_entries: Vec<HashedImageEntry> = Vec::new();
+    let total_files = file_paths.len() as u64;
+
+    let pb = ProgressBar::new(total_files);
+    pb.set_style(
+        ProgressStyle::with_template(
+            "[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({percent}%) | ETA: {eta}"
+        )
+            .unwrap()
+            .progress_chars("#>-")
+    );
 
     for file_path in file_paths {
+        if let Some(file_name) = file_path.file_name().and_then(|n| n.to_str()) {
+            pb.set_message(file_name.to_string());
+        }
+
         let img = load_dynamic_image(file_path)?;
         let img_hash = hasher.hash_image(&img);
 
@@ -72,8 +87,8 @@ fn read_and_hash_files(file_paths: &Vec<PathBuf>) -> Result<Vec<HashedImageEntry
             hash: img_hash
         };
 
-        println!("Hash computed for: {}", file_path.to_str().unwrap());
         hashed_image_entries.push(hashed_image_entry);
+        pb.inc(1);
     }
     return Ok(hashed_image_entries);
 }
