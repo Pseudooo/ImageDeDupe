@@ -2,15 +2,13 @@ mod image_hashing;
 
 use crate::image_hashing::HashedImageEntry;
 use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator, IndexedParallelIterator};
+use petgraph::graph::UnGraph;
+use petgraph::prelude::EdgeRef;
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::{env, fs};
-use std::collections::HashMap;
-use std::ops::Deref;
-use petgraph::{Graph, Undirected};
-use petgraph::graph::UnGraph;
-use petgraph::prelude::EdgeRef;
 use vp_tree::{Querry, VpTree};
 
 fn main() {
