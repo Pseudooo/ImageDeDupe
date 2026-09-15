@@ -3,7 +3,8 @@ use image_hasher::{HashAlg, HasherConfig, ImageHash};
 use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::{env, fs};
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 fn main() {
     println!("Finding files in current directory...");
@@ -62,35 +63,30 @@ fn read_and_hash_files(file_paths: &Vec<PathBuf>) -> Result<Vec<HashedImageEntry
         .hash_size(8, 8)
         .to_hasher();
 
-    let mut hashed_image_entries: Vec<HashedImageEntry> = Vec::new();
     let total_files = file_paths.len() as u64;
-
     let pb = ProgressBar::new(total_files);
     pb.set_style(
         ProgressStyle::with_template(
             "[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({percent}%) | ETA: {eta}"
-        )
+            )
             .unwrap()
             .progress_chars("#>-")
     );
 
-    for file_path in file_paths {
-        if let Some(file_name) = file_path.file_name().and_then(|n| n.to_str()) {
-            pb.set_message(file_name.to_string());
-        }
+    let hashed_image_entries: Result<Vec<HashedImageEntry>, String> = file_paths
+        .par_iter()
+        .progress_with(pb)
+        .map(|file_path| {
+            let img = load_dynamic_image(file_path)?;
+            let img_hash = hasher.hash_image(&img);
 
-        let img = load_dynamic_image(file_path)?;
-        let img_hash = hasher.hash_image(&img);
-
-        let hashed_image_entry = HashedImageEntry {
-            path: file_path.to_path_buf(),
-            hash: img_hash
-        };
-
-        hashed_image_entries.push(hashed_image_entry);
-        pb.inc(1);
-    }
-    return Ok(hashed_image_entries);
+            Ok(HashedImageEntry {
+                path: file_path.to_path_buf(),
+                hash: img_hash
+            })
+        })
+        .collect();
+    return Ok(hashed_image_entries?);
 }
 
 fn load_dynamic_image(path: &PathBuf) -> Result<DynamicImage, String> {
