@@ -10,6 +10,7 @@ use petgraph::prelude::EdgeRef;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use std::collections::HashMap;
 use std::ffi::OsStr;
+use std::fs;
 use std::path::PathBuf;
 use std::time::Duration;
 use vp_tree::{Querry, VpTree};
@@ -22,7 +23,7 @@ fn main() {
         return;
     }
 
-    let files = match scan_target_directory(cli.target) {
+    let files = match scan_target_directory(&cli.target) {
         Ok(files) => files,
         Err(e) => {
             println!("{e}");
@@ -41,11 +42,16 @@ fn main() {
     println!("Done");
 
     println!("Deduplicating Graph...");
-    let deduplicated = deduplicate(vptree);
+    let deduplicated = get_similar_groupings(vptree);
     println!("Done! Have {} images after deduplication", deduplicated.len());
+
+    match write_groupings_to_output(deduplicated, &cli.output) {
+        Ok(_) => println!("Done!"),
+        Err(e) => println!("Failed to write results, {e}"),
+    }
 }
 
-fn scan_target_directory(target: PathBuf) -> Result<Vec<PathBuf>, String> {
+fn scan_target_directory(target: &PathBuf) -> Result<Vec<PathBuf>, String> {
     let progress_bar = ProgressBar::new_spinner();
     progress_bar.set_style(
         ProgressStyle::with_template("[{elapsed_precise}] {spinner:.green} Files Scanned: {pos} | Images Found: {msg}")
@@ -104,7 +110,7 @@ fn read_and_hash_files(file_paths: &Vec<PathBuf>) -> Result<Vec<HashedImageEntry
     Ok(hashed_image_entries?)
 }
 
-fn deduplicate(tree: VpTree<HashedImageEntry>) -> Vec<HashedImageEntry> {
+fn get_similar_groupings(tree: VpTree<HashedImageEntry>) -> Vec<Vec<HashedImageEntry>> {
     let mut graph = UnGraph::<usize, ()>::new_undirected();
 
     let mut node_map = HashMap::new();
@@ -138,12 +144,52 @@ fn deduplicate(tree: VpTree<HashedImageEntry>) -> Vec<HashedImageEntry> {
         groups.entry(root).or_insert_with(|| Vec::new()).push(item.clone());
     }
 
-    let mut unique_entries: Vec<HashedImageEntry> = Vec::new();
-    for (_, cluster) in &groups {
-        if let Some(first) = cluster.first() {
-            unique_entries.push(first.clone());
+    return groups.values().cloned().collect();
+}
+
+fn write_groupings_to_output(groupings: Vec<Vec<HashedImageEntry>>, output_path: &PathBuf) -> Result<(), String> {
+    if !output_path.exists() {
+        match fs::create_dir_all(&output_path) {
+            Ok(_) => (),
+            Err(e) => return Err(format!("Failed to create output directory: {}", e)),
         }
     }
 
-    return unique_entries;
+    let total_images = groupings.iter()
+        .map(|grouping| grouping.len() as u64)
+        .sum();
+    let pb = ProgressBar::new(total_images);
+    pb.set_style(
+        ProgressStyle::with_template(
+            "[{elapsed_precise}] Writing Files [{bar:40.cyan/blue}] {pos}/{len} ({percent}%) | ETA: {eta}"
+            )
+            .unwrap()
+            .progress_chars("#>-")
+    );
+
+    for (i, grouping) in groupings.iter().enumerate() {
+        if grouping.len() == 1 {
+            let entry = grouping.first().unwrap();
+            let filename = entry.path.file_name().unwrap().to_str().unwrap_or("");
+            let destination = output_path.join(filename);
+            fs::copy(&entry.path, &destination).map_err(|e| format!("Failed to copy: {}", e))?;
+            pb.inc(1);
+            continue;
+        }
+
+        let grouping_dir = output_path.join(&i.to_string());
+        match fs::create_dir_all(&grouping_dir) {
+            Ok(_) => (),
+            Err(e) => return Err(format!("Failed to create output directory: {}", e)),
+        }
+        for entry in grouping {
+            let filename = entry.path.file_name().unwrap().to_str().unwrap_or("");
+            let destination = grouping_dir.join(filename);
+            fs::copy(&entry.path, &destination).map_err(|e| format!("Failed to copy: {}", e))?;
+            pb.inc(1);
+        }
+    }
+
+    pb.finish();
+    Ok(())
 }
