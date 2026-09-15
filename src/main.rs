@@ -22,7 +22,6 @@ fn main() {
         return;
     }
 
-    println!("Finding files in current directory...");
     let files = match scan_target_directory(cli.target) {
         Ok(files) => files,
         Err(e) => {
@@ -114,7 +113,7 @@ fn deduplicate(tree: VpTree<HashedImageEntry>) -> Vec<HashedImageEntry> {
         node_map.insert(entry.id, node_index);
     }
 
-    let distance_threshold = 5;
+    let distance_threshold = 8;
     for entry in tree.items() {
         let matches = tree.querry(entry, Querry::new(99999, distance_threshold.into(), true, false));
         for matched_entry in matches {
