@@ -2,14 +2,23 @@ use std::fs;
 use std::path::PathBuf;
 use image::{DynamicImage, ImageBuffer, Rgba};
 use image_hasher::{HashAlg, HasherConfig, ImageHash};
+use vp_tree::Distance;
 
+#[derive(Clone)]
 pub struct HashedImageEntry {
+    pub id: usize,
     pub path: PathBuf,
     pub hash: ImageHash
 }
 
+impl Distance<HashedImageEntry> for HashedImageEntry {
+    fn distance(&self, other: &HashedImageEntry) -> f64 {
+        self.hash.dist(&other.hash).into()
+    }
+}
+
 impl HashedImageEntry {
-    pub fn create_from_path(path: &PathBuf) -> Result<HashedImageEntry, String> {
+    pub fn create_from_path(id: usize, path: &PathBuf) -> Result<HashedImageEntry, String> {
         let hasher = HasherConfig::new()
             .hash_alg(HashAlg::Gradient)
             .hash_size(8, 8)
@@ -19,6 +28,7 @@ impl HashedImageEntry {
         let image_hash = hasher.hash_image(&image);
 
         Ok(HashedImageEntry {
+            id,
             path: path.to_path_buf(),
             hash: image_hash,
         })
