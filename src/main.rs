@@ -1,10 +1,11 @@
-use image::{DynamicImage, ImageBuffer, Rgba};
-use image_hasher::{HashAlg, HasherConfig, ImageHash};
+mod image_hashing;
+
+use crate::image_hashing::HashedImageEntry;
+use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::{env, fs};
-use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 fn main() {
     println!("Finding files in current directory...");
@@ -52,17 +53,7 @@ fn is_valid_extension(extension: Option<&OsStr>) -> bool {
     return false;
 }
 
-struct HashedImageEntry {
-    path: PathBuf,
-    hash: ImageHash
-}
-
 fn read_and_hash_files(file_paths: &Vec<PathBuf>) -> Result<Vec<HashedImageEntry>, String> {
-    let hasher = HasherConfig::new()
-        .hash_alg(HashAlg::Gradient)
-        .hash_size(8, 8)
-        .to_hasher();
-
     let total_files = file_paths.len() as u64;
     let pb = ProgressBar::new(total_files);
     pb.set_style(
@@ -76,41 +67,8 @@ fn read_and_hash_files(file_paths: &Vec<PathBuf>) -> Result<Vec<HashedImageEntry
     let hashed_image_entries: Result<Vec<HashedImageEntry>, String> = file_paths
         .par_iter()
         .progress_with(pb)
-        .map(|file_path| {
-            let img = load_dynamic_image(file_path)?;
-            let img_hash = hasher.hash_image(&img);
-
-            Ok(HashedImageEntry {
-                path: file_path.to_path_buf(),
-                hash: img_hash
-            })
-        })
+        .map(|file_path| HashedImageEntry::create_from_path(file_path))
         .collect();
-    return Ok(hashed_image_entries?);
-}
 
-fn load_dynamic_image(path: &PathBuf) -> Result<DynamicImage, String> {
-    let extension = path.extension()
-        .and_then(|s| s.to_str())
-        .unwrap_or("")
-        .to_lowercase();
-
-    if extension == "heic" || extension == "heif" {
-        let bytes = fs::read(path)
-            .map_err(|e| format!("failed to read image: {}", e))?;
-
-        let decoded = heic::DecoderConfig::new()
-            .decode(&bytes, heic::PixelLayout::Rgba8)
-            .map_err(|e| format!("HEIC/HEIF Image Decoding Error: {}", e))?;
-
-        let buffer = ImageBuffer::<Rgba<u8>, Vec<u8>>::from_raw(
-                decoded.width,
-                decoded.height,
-                decoded.data,
-            ).ok_or("Failed to construct image buffer from HEIC data")?;
-
-        return Ok(DynamicImage::ImageRgba8(buffer));
-    }
-
-    image::open(path).map_err(|e| format!("Failed to open image: {}", e))
+    Ok(hashed_image_entries?)
 }
