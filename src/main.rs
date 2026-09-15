@@ -30,11 +30,11 @@ fn main() {
     println!("Done!");
 
     println!("Creating VP-Tree...");
-    let vptree = VpTree::new(image_hashes.clone());
+    let vptree = VpTree::new(image_hashes);
     println!("Done");
 
     println!("Deduplicating Graph...");
-    let deduplicated = deduplicate(image_hashes, vptree);
+    let deduplicated = deduplicate(vptree);
     println!("Done! Have {} images after deduplication", deduplicated.len());
 }
 
@@ -90,17 +90,17 @@ fn read_and_hash_files(file_paths: &Vec<PathBuf>) -> Result<Vec<HashedImageEntry
     Ok(hashed_image_entries?)
 }
 
-fn deduplicate(hash_entries: Vec<HashedImageEntry>, tree: VpTree<HashedImageEntry>) -> Vec<HashedImageEntry> {
+fn deduplicate(tree: VpTree<HashedImageEntry>) -> Vec<HashedImageEntry> {
     let mut graph = UnGraph::<usize, ()>::new_undirected();
 
     let mut node_map = HashMap::new();
-    for entry in &hash_entries {
+    for entry in tree.items() {
         let node_index = graph.add_node(entry.id);
         node_map.insert(entry.id, node_index);
     }
 
     let distance_threshold = 5;
-    for entry in &hash_entries {
+    for entry in tree.items() {
         let matches = tree.querry(entry, Querry::new(99999, distance_threshold.into(), true, false));
         for matched_entry in matches {
             let node_a_idx = node_map[&entry.id];
@@ -109,7 +109,7 @@ fn deduplicate(hash_entries: Vec<HashedImageEntry>, tree: VpTree<HashedImageEntr
         }
     }
 
-    let mut vertex_sets = petgraph::unionfind::UnionFind::new(hash_entries.len());
+    let mut vertex_sets = petgraph::unionfind::UnionFind::new(tree.items().len());
     for edge in graph.edge_references() {
         let u = edge.source();
         let v = edge.target();
@@ -118,10 +118,10 @@ fn deduplicate(hash_entries: Vec<HashedImageEntry>, tree: VpTree<HashedImageEntr
     }
 
     let mut groups: HashMap<usize, Vec<HashedImageEntry>> = HashMap::new();
-    for item in hash_entries {
+    for item in tree.items() {
         let node_idx = node_map[&item.id].index();
         let root = vertex_sets.find(node_idx);
-        groups.entry(root).or_insert_with(|| Vec::new()).push(item);
+        groups.entry(root).or_insert_with(|| Vec::new()).push(item.clone());
     }
 
     let mut unique_entries: Vec<HashedImageEntry> = Vec::new();
