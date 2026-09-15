@@ -4,6 +4,7 @@ use image::{DynamicImage, ImageBuffer, Rgba};
 use image_hasher::{HashAlg, HasherConfig, ImageHash};
 use vp_tree::Distance;
 
+#[derive(Clone)]
 pub struct HashedImageEntry {
     pub id: usize,
     pub path: PathBuf,
