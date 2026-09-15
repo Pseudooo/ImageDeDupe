@@ -1,7 +1,9 @@
 mod image_hashing;
 mod cli_args;
 
+use crate::cli_args::CliArgs;
 use crate::image_hashing::HashedImageEntry;
+use clap::Parser;
 use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
 use petgraph::graph::UnGraph;
 use petgraph::prelude::EdgeRef;
@@ -9,23 +11,26 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIter
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::PathBuf;
-use std::{env, fs};
-use clap::Parser;
+use std::time::Duration;
 use vp_tree::{Querry, VpTree};
-use crate::cli_args::CliArgs;
+use walkdir::WalkDir;
 
 fn main() {
     let cli = CliArgs::parse();
     if let Err(e) = cli.validate() {
         println!("Invalid arguments, {}", e);
+        return;
     }
 
     println!("Finding files in current directory...");
-    let files = get_files_from_path(cli.target);
+    let files = match scan_target_directory(cli.target) {
+        Ok(files) => files,
+        Err(e) => {
+            println!("{e}");
+            return;
+        }
+    };
 
-    println!("Found {} valid image files", files.len());
-
-    println!("Computing hashes...");
     let image_hashes = match read_and_hash_files(&files) {
         Ok(hashes) => hashes,
         Err(e) => panic!("Failed to process images: {}", e),
@@ -41,25 +46,32 @@ fn main() {
     println!("Done! Have {} images after deduplication", deduplicated.len());
 }
 
-fn get_files_from_path(path: PathBuf) -> Vec<PathBuf> {
-    let dir_entries = match fs::read_dir(&path) {
-        Ok(dir_entries) => dir_entries,
-        Err(error) => panic!("failed to read directory: {}", error),
-    };
+fn scan_target_directory(target: PathBuf) -> Result<Vec<PathBuf>, String> {
+    let progress_bar = ProgressBar::new_spinner();
+    progress_bar.set_style(
+        ProgressStyle::with_template("[{elapsed_precise}] {spinner:.green} Files Scanned: {pos} | Images Found: {msg}")
+            .unwrap()
+            .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ ")
+    );
+    progress_bar.enable_steady_tick(Duration::from_millis(100));
+    let mut supported_images = Vec::new();
 
-    let mut files: Vec<PathBuf> = Vec::new();
+    for entry_result in WalkDir::new(target).into_iter() {
+        let entry = entry_result.map_err(|e| format!("Failed to process entry: {}", e))?;
 
-    for entry in dir_entries {
-        let path = entry.unwrap().path();
+        if !entry.file_type().is_file() {
+            continue;
+        }
 
-        if path.is_dir() {
-            files.append(&mut get_files_from_path(path));
-        } else if path.is_file() && is_valid_extension(path.extension()) {
-            files.push(path);
+        progress_bar.inc(1);
+        if is_valid_extension(entry.path().extension()) {
+            supported_images.push(entry.path().to_path_buf());
+            progress_bar.set_message(supported_images.len().to_string());
         }
     }
 
-    return files;
+    progress_bar.finish();
+    Ok(supported_images)
 }
 
 fn is_valid_extension(extension: Option<&OsStr>) -> bool {
@@ -77,7 +89,7 @@ fn read_and_hash_files(file_paths: &Vec<PathBuf>) -> Result<Vec<HashedImageEntry
     let pb = ProgressBar::new(total_files);
     pb.set_style(
         ProgressStyle::with_template(
-            "[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({percent}%) | ETA: {eta}"
+            "[{elapsed_precise}] Computing Hashes [{bar:40.cyan/blue}] {pos}/{len} ({percent}%) | ETA: {eta}"
             )
             .unwrap()
             .progress_chars("#>-")
