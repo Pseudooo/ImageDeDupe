@@ -13,3 +13,4 @@ vp_tree = "0.1.1"
 petgraph = "0.8.3"
 clap = { version = "4.6.7", features = ["derive"] }
 clap_derive = "4.6.7"
+walkdir = "2.5.0"
