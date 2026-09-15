@@ -51,7 +51,7 @@ fn scan_target_directory(target: PathBuf) -> Result<Vec<PathBuf>, String> {
     progress_bar.set_style(
         ProgressStyle::with_template("[{elapsed_precise}] {spinner:.green} Files Scanned: {pos} | Images Found: {msg}")
             .unwrap()
-            .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ ")
+            .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏⠿")
     );
     progress_bar.enable_steady_tick(Duration::from_millis(100));
     let mut supported_images = Vec::new();
