@@ -2,7 +2,7 @@ mod image_hashing;
 
 use crate::image_hashing::HashedImageEntry;
 use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator, IndexedParallelIterator};
 use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::{env, fs};
@@ -75,8 +75,9 @@ fn read_and_hash_files(file_paths: &Vec<PathBuf>) -> Result<Vec<HashedImageEntry
 
     let hashed_image_entries: Result<Vec<HashedImageEntry>, String> = file_paths
         .par_iter()
+        .enumerate()
         .progress_with(pb)
-        .map(|file_path| HashedImageEntry::create_from_path(file_path))
+        .map(|(id, file_path)| HashedImageEntry::create_from_path(id, file_path))
         .collect();
 
     Ok(hashed_image_entries?)
