@@ -4,10 +4,22 @@ use std::path::PathBuf;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct CliArgs {
-    #[arg(short, long, required = false, default_value = "./")]
+    #[arg(
+        short,
+        long,
+        required = false,
+        default_value = "./",
+        help = "The target directory to read images from"
+    )]
     pub target: PathBuf,
 
-    #[arg(short, long, required = false, default_value = "./output")]
+    #[arg(
+        short,
+        long,
+        required = false,
+        default_value = "./output",
+        help = "The output directory to write groupings too"
+    )]
     pub output: PathBuf,
 }
 
