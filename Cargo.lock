@@ -11,6 +11,7 @@ dependencies = [
  "image_hasher",
  "indicatif",
  "rayon",
+ "vp_tree",
 ]
 
 [[package]]
@@ -341,6 +342,12 @@ dependencies = [
  "smallvec",
  "zune-inflate",
 ]
+
+[[package]]
+name = "fastrand"
+version = "2.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da7c62ceae207dd37ea5b845da6a0696c799f85e97da1ab5b7910be3c1c80223"
 
 [[package]]
 name = "fax"
@@ -1276,6 +1283,15 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "vp_tree"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b97b5d736f72ee920ae3a0d4bf30dd99fa73eed4c385e13a68691add246f45a"
+dependencies = [
+ "fastrand",
+]
 
 [[package]]
 name = "wasip2"

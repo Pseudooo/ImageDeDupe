@@ -2,10 +2,17 @@ use std::fs;
 use std::path::PathBuf;
 use image::{DynamicImage, ImageBuffer, Rgba};
 use image_hasher::{HashAlg, HasherConfig, ImageHash};
+use vp_tree::Distance;
 
 pub struct HashedImageEntry {
     pub path: PathBuf,
     pub hash: ImageHash
+}
+
+impl Distance<HashedImageEntry> for HashedImageEntry {
+    fn distance(&self, other: &HashedImageEntry) -> f64 {
+        self.hash.dist(&other.hash).into()
+    }
 }
 
 impl HashedImageEntry {

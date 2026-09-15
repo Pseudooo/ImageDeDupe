@@ -6,6 +6,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::{env, fs};
+use vp_tree::VpTree;
 
 fn main() {
     println!("Finding files in current directory...");
@@ -17,9 +18,17 @@ fn main() {
     let files = get_files_from_path(curr_path);
 
     println!("Found {} valid image files", files.len());
+
     println!("Computing hashes...");
-    let image_hashes = read_and_hash_files(&files);
+    let image_hashes = match read_and_hash_files(&files) {
+        Ok(hashes) => hashes,
+        Err(e) => panic!("Failed to process images: {}", e),
+    };
     println!("Done!");
+
+    println!("Creating VP-Tree");
+    let vptree = VpTree::new(image_hashes);
+    println!("Done");
 }
 
 fn get_files_from_path(path: PathBuf) -> Vec<PathBuf> {
