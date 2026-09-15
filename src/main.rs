@@ -1,4 +1,5 @@
 mod image_hashing;
+mod cli_args;
 
 use crate::image_hashing::HashedImageEntry;
 use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
@@ -9,16 +10,18 @@ use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::{env, fs};
+use clap::Parser;
 use vp_tree::{Querry, VpTree};
+use crate::cli_args::CliArgs;
 
 fn main() {
-    println!("Finding files in current directory...");
+    let cli = CliArgs::parse();
+    if let Err(e) = cli.validate() {
+        println!("Invalid arguments, {}", e);
+    }
 
-    let curr_path = match env::current_dir() {
-        Ok(path) => path,
-        Err(e) => panic!("Failed to read current directory: {}", e),
-    };
-    let files = get_files_from_path(curr_path);
+    println!("Finding files in current directory...");
+    let files = get_files_from_path(cli.target);
 
     println!("Found {} valid image files", files.len());
 
