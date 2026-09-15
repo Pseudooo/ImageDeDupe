@@ -80,13 +80,13 @@ fn scan_target_directory(target: &PathBuf) -> Result<Vec<PathBuf>, String> {
 }
 
 fn is_valid_extension(extension: Option<&OsStr>) -> bool {
-    let valid_extensions = vec!["jpg", "jpeg", "png", "heic"];
+    let valid_extensions = ["jpg", "jpeg", "png", "heic"];
 
     if let Some(e) = extension {
         return valid_extensions.contains(&e.to_ascii_lowercase().to_str().unwrap());
     }
 
-    return false;
+    false
 }
 
 fn read_and_hash_files(file_paths: &Vec<PathBuf>) -> Result<Vec<HashedImageEntry>, String> {
@@ -107,7 +107,7 @@ fn read_and_hash_files(file_paths: &Vec<PathBuf>) -> Result<Vec<HashedImageEntry
         .map(|(id, file_path)| HashedImageEntry::create_from_path(id, file_path))
         .collect();
 
-    Ok(hashed_image_entries?)
+    hashed_image_entries
 }
 
 fn get_similar_groupings(tree: VpTree<HashedImageEntry>) -> Vec<Vec<HashedImageEntry>> {
@@ -141,15 +141,15 @@ fn get_similar_groupings(tree: VpTree<HashedImageEntry>) -> Vec<Vec<HashedImageE
     for item in tree.items() {
         let node_idx = node_map[&item.id].index();
         let root = vertex_sets.find(node_idx);
-        groups.entry(root).or_insert_with(|| Vec::new()).push(item.clone());
+        groups.entry(root).or_default().push(item.clone());
     }
 
-    return groups.values().cloned().collect();
+    groups.values().cloned().collect()
 }
 
 fn write_groupings_to_output(groupings: Vec<Vec<HashedImageEntry>>, output_path: &PathBuf) -> Result<(), String> {
     if !output_path.exists() {
-        match fs::create_dir_all(&output_path) {
+        match fs::create_dir_all(output_path) {
             Ok(_) => (),
             Err(e) => return Err(format!("Failed to create output directory: {}", e)),
         }
@@ -177,7 +177,7 @@ fn write_groupings_to_output(groupings: Vec<Vec<HashedImageEntry>>, output_path:
             continue;
         }
 
-        let grouping_dir = output_path.join(&i.to_string());
+        let grouping_dir = output_path.join(i.to_string());
         match fs::create_dir_all(&grouping_dir) {
             Ok(_) => (),
             Err(e) => return Err(format!("Failed to create output directory: {}", e)),
