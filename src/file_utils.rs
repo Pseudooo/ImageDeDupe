@@ -18,7 +18,9 @@ pub fn get_images_from_target_directory(target: &PathBuf, progress_bar: Option<&
         }
 
         if is_valid_extension(entry.path().extension()) {
-            progress_bar.map(|p| p.set_message(found_images.len().to_string()));
+            if let Some(progress_bar) = progress_bar {
+                progress_bar.set_message(found_images.len().to_string());
+            }
             found_images.push(entry.into_path());
         }
     }
