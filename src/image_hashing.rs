@@ -1,7 +1,8 @@
-use std::fs;
-use std::path::PathBuf;
+use crate::cli_args::HashAlgorithm;
 use image::{DynamicImage, ImageBuffer, Rgba};
 use image_hasher::{HashAlg, HasherConfig, ImageHash};
+use std::fs;
+use std::path::PathBuf;
 use vp_tree::Distance;
 
 #[derive(Clone)]
@@ -18,9 +19,12 @@ impl Distance<HashedImageEntry> for HashedImageEntry {
 }
 
 impl HashedImageEntry {
-    pub fn create_from_path(id: usize, path: &PathBuf) -> Result<HashedImageEntry, String> {
+    pub fn create_from_path(id: usize, path: &PathBuf, alg: HashAlgorithm) -> Result<HashedImageEntry, String> {
         let hasher = HasherConfig::new()
-            .hash_alg(HashAlg::Gradient)
+            .hash_alg(match alg {
+                HashAlgorithm::DistanceHash => HashAlg::Gradient,
+                HashAlgorithm::PerceptualHash => HashAlg::Mean,
+            })
             .hash_size(8, 8)
             .to_hasher();
 
