@@ -1,3 +1,5 @@
+use clap::ValueEnum;
+use clap::builder::PossibleValue;
 use clap_derive::Parser;
 use std::path::PathBuf;
 
@@ -18,7 +20,7 @@ pub struct CliArgs {
         long,
         required = false,
         default_value = "./output",
-        help = "The output directory to write groupings too"
+        help = "The output directory to write groupings too",
     )]
     pub output: PathBuf,
 
@@ -26,10 +28,38 @@ pub struct CliArgs {
         short,
         long,
         required = false,
-        default_value = "8",
-        help = "The hamming distance between two image hashes to be identified as duplicates"
+        default_value = "pHash",
+        help = "The hash algorithm to use",
+    )]
+    pub algorithm: HashAlgorithm,
+
+    #[arg(
+        short,
+        long,
+        required = false,
+        default_value = "5",
+        help = "The hamming distance between two image hashes to be identified as duplicates",
     )]
     pub distance: i32,
+}
+
+#[derive(Debug, Clone)]
+pub enum HashAlgorithm {
+    DistanceHash,
+    PerceptualHash,
+}
+
+impl ValueEnum for HashAlgorithm {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[Self::DistanceHash, Self::PerceptualHash]
+    }
+
+    fn to_possible_value(&self) -> Option<PossibleValue> {
+        Some(match self {
+            Self::DistanceHash => PossibleValue::new("dHash"),
+            Self::PerceptualHash => PossibleValue::new("pHash"),
+        })
+    }
 }
 
 impl CliArgs {
