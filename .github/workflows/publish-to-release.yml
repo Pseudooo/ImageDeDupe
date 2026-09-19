@@ -1,0 +1,60 @@
+name: Upload Release Artifacts
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-upload:
+    name: Build & Upload (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-pc-windows-msvc   # Standard Windows 64-bit
+          - aarch64-pc-windows-msvc  # Windows ARM64
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install LLVM and Clang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y llvm clang
+
+      - name: Install cargo-xwin
+        run: cargo install cargo-xwin --locked
+
+      - name: Build Application
+        run: cargo xwin build --release --target ${{ matrix.target }}
+
+      - name: Package Artifact into Zip
+        run: |
+          # Replace 'your_project_name' with the actual binary name defined in Cargo.toml
+          BIN_NAME="your_project_name"
+          ARCHIVE_NAME="${BIN_NAME}-${{ matrix.target }.zip"
+          
+          # Linux runners use standard 'zip' instead of PowerShell's Compress-Archive
+          cd target/${{ matrix.target }}/release
+          zip ../../../$ARCHIVE_NAME ${BIN_NAME}.exe
+          cd ../../../
+          
+          # Store the archive path for the upload step
+          echo "ARCHIVE_PATH=$ARCHIVE_NAME" >> $GITHUB_ENV
+
+      - name: Upload Artifact to Existing Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Uploads the zip file directly to the tag that triggered the event
+          gh release upload ${{ github.event.release.tag_name }} ${{ env.ARCHIVE_PATH }} --clobber
