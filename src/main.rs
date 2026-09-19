@@ -50,7 +50,7 @@ fn main() {
     println!("Done");
 
     println!("Deduplicating Graph...");
-    let deduplicated = get_similar_groupings(vptree);
+    let deduplicated = get_similar_groupings(vptree, cli.distance);
     println!("Done! Have {} images after deduplication", deduplicated.len());
 
     match write_groupings_to_output(deduplicated, &cli.output) {
@@ -80,7 +80,7 @@ fn read_and_hash_files(file_paths: &Vec<PathBuf>) -> Result<Vec<HashedImageEntry
     hashed_image_entries
 }
 
-fn get_similar_groupings(tree: VpTree<HashedImageEntry>) -> Vec<Vec<HashedImageEntry>> {
+fn get_similar_groupings(tree: VpTree<HashedImageEntry>, distance_threshold: i32) -> Vec<Vec<HashedImageEntry>> {
     let mut graph = UnGraph::<usize, ()>::new_undirected();
 
     let mut node_map = HashMap::new();
@@ -89,7 +89,6 @@ fn get_similar_groupings(tree: VpTree<HashedImageEntry>) -> Vec<Vec<HashedImageE
         node_map.insert(entry.id, node_index);
     }
 
-    let distance_threshold = 8;
     for entry in tree.items() {
         let matches = tree.querry(entry, Querry::new(99999, distance_threshold.into(), true, false));
         for matched_entry in matches {
