@@ -2,7 +2,7 @@ mod image_hashing;
 mod cli_args;
 mod file_utils;
 
-use crate::cli_args::CliArgs;
+use crate::cli_args::{CliArgs, HashAlgorithm};
 use crate::file_utils::get_images_from_target_directory;
 use crate::image_hashing::HashedImageEntry;
 use clap::Parser;
@@ -39,7 +39,7 @@ fn main() {
     };
     dir_scanning_progress_bar.finish();
 
-    let image_hashes = match read_and_hash_files(&files) {
+    let image_hashes = match read_and_hash_files(&files, cli.algorithm) {
         Ok(hashes) => hashes,
         Err(e) => panic!("Failed to process images: {}", e),
     };
@@ -59,7 +59,7 @@ fn main() {
     }
 }
 
-fn read_and_hash_files(file_paths: &Vec<PathBuf>) -> Result<Vec<HashedImageEntry>, String> {
+fn read_and_hash_files(file_paths: &Vec<PathBuf>, alg: HashAlgorithm) -> Result<Vec<HashedImageEntry>, String> {
     let total_files = file_paths.len() as u64;
     let pb = ProgressBar::new(total_files);
     pb.set_style(
@@ -74,7 +74,7 @@ fn read_and_hash_files(file_paths: &Vec<PathBuf>) -> Result<Vec<HashedImageEntry
         .par_iter()
         .enumerate()
         .progress_with(pb)
-        .map(|(id, file_path)| HashedImageEntry::create_from_path(id, file_path))
+        .map(|(id, file_path)| HashedImageEntry::create_from_path(id, file_path, alg.clone()))
         .collect();
 
     hashed_image_entries
