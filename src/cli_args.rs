@@ -21,6 +21,15 @@ pub struct CliArgs {
         help = "The output directory to write groupings too"
     )]
     pub output: PathBuf,
+
+    #[arg(
+        short,
+        long,
+        required = false,
+        default_value = "8",
+        help = "The hamming distance between two image hashes to be identified as duplicates"
+    )]
+    pub distance: i32,
 }
 
 impl CliArgs {
