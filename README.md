@@ -27,8 +27,10 @@ The command arguments can be seen with the `--help` option:
 Usage: ImageDeDupe.exe [OPTIONS]
 
 Options:
-  -t, --target <TARGET>  The target directory to read images from [default: ./]
-  -o, --output <OUTPUT>  The output directory to write groupings too [default: ./output]
-  -h, --help             Print help
-  -V, --version          Print version
+  -t, --target <TARGET>        The target directory to read images from [default: ./]
+  -o, --output <OUTPUT>        The output directory to write groupings too [default: ./output]
+  -a, --algorithm <ALGORITHM>  The hash algorithm to use [default: pHash] [possible values: dHash, pHash]
+  -d, --distance <DISTANCE>    The hamming distance between two image hashes to be identified as duplicates [default: 8]
+  -h, --help                   Print help
+  -V, --version                Print version
 ```
