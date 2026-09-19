@@ -40,21 +40,17 @@ jobs:
 
       - name: Package Artifact into Zip
         run: |
-          # Replace 'your_project_name' with the actual binary name defined in Cargo.toml
-          BIN_NAME="your_project_name"
-          ARCHIVE_NAME="${BIN_NAME}-${{ matrix.target }.zip"
+          BIN_NAME="ImageDeDupe"
+          ARCHIVE_NAME="${BIN_NAME}-${{ matrix.target }}.zip"
           
-          # Linux runners use standard 'zip' instead of PowerShell's Compress-Archive
           cd target/${{ matrix.target }}/release
           zip ../../../$ARCHIVE_NAME ${BIN_NAME}.exe
           cd ../../../
           
-          # Store the archive path for the upload step
           echo "ARCHIVE_PATH=$ARCHIVE_NAME" >> $GITHUB_ENV
 
       - name: Upload Artifact to Existing Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Uploads the zip file directly to the tag that triggered the event
           gh release upload ${{ github.event.release.tag_name }} ${{ env.ARCHIVE_PATH }} --clobber
